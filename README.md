@@ -94,6 +94,10 @@ To run this project you will need to add the following environment variables to 
 
 `ENABLE_METADATA` This option allows you to enable scanning the metadata of your files. If this is enabled, TorBox will __attempt__ to find the correct metadata for your files in your TorBox account. This isn't perfect, so use with caution. If this option is `false` it skips scanning and places all of your video files in the `movies` folder. If it is enabled, TorBox will scan, and attempt to place your files into either the `movies` or `series` folders. Please also keep in mind that you will be subject to rate limiting of our search endpoint when using the metadata option. Seeing 429 errors will be common. Most of the time it is best to keep this option disabled unless you video player absolutely requires it. Also keep in mind, this unlocks the `instant` option, which can allow you to refresh every 6 minutes.
 
+`ENHANCED_FOLDER_STRUCTURE` Enables enhanced folder structure with automatic classification. When enabled, content is organized into `movies/`, `series/`, `music/`, and `others/` categories. Movies are further organized by resolution (2160/, 1080/, 720/, 480/, unknown/). Folder names include technical metadata and a unique hash to prevent duplicates: "Title (Year) [1080p BluRay] {hash}/". The system tracks file locations and respects manual changes - if you move a folder to a different category or resolution, it will stay there. Default: `false`. This is optional.
+
+`FORCE_RECLASSIFY` Forces complete reclassification of all content, ignoring any manual changes you've made. Useful for resetting the entire structure. Only works when `ENHANCED_FOLDER_STRUCTURE` is enabled. Default: `false`. This is optional.
+
 `RAW_MODE` This option determines whether you want the raw file structure (similar to what you would see with webdav). Setting this to `true` will present the files in the original structure. If this is enabled, the `ENABLE_METADATA` option is disabled.
 
 ## 🐳 Running on Docker with one command (recommended)
