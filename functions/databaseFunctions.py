@@ -72,6 +72,41 @@ def insertData(data: dict, type: str):
             return True, "Data inserted successfully."
         except Exception as e:
             return False, f"Error inserting data. {e}"
+
+def updateData(data: dict, type: str):
+    """
+    Updates data in the database with thread safety.
+    Uses folder_hash as the unique identifier.
+    
+    Args:
+        data: Dictionary containing the data to update (must include 'folder_hash')
+        type: Database type (e.g., 'db', 'tracking')
+    
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    from tinydb import Query
+    
+    db = getDatabase(type)
+    db_lock = getDatabaseLock(type)
+    
+    if db is None or db_lock is None:
+        return False, "Database connection failed."
+    
+    folder_hash = data.get('folder_hash')
+    if not folder_hash:
+        return False, "folder_hash is required for update"
+    
+    with db_lock:
+        try:
+            q = Query()
+            result = db.update(data, q.folder_hash == folder_hash)
+            if result:
+                return True, f"Data updated successfully ({result} records)."
+            else:
+                return False, "No matching record found to update."
+        except Exception as e:
+            return False, f"Error updating data: {e}"
     
 def getAllData(type: str):
     """

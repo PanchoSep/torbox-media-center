@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Dict, List
 from tinydb import Query
 from functions.databaseFunctions import getDatabase, getDatabaseLock
 
@@ -122,3 +122,99 @@ def update_tracking(torbox_hash: str, category: str, resolution_folder: Optional
         except Exception as e:
             logger.error(f"Failed to update tracking for {torbox_hash}: {e}")
             return False, f"Error updating tracking: {e}"
+
+def scan_current_locations() -> Dict[str, Dict]:
+    """
+    Escanea el filesystem y retorna ubicaciones actuales de archivos .strm
+    
+    Returns:
+        Dict con hash como key y info de ubicación como value
+    """
+    import os
+    import glob
+    import re
+    from library.filesystem import MOUNT_PATH
+    
+    locations = {}
+    
+    # Buscar todos los .strm recursivamente
+    strm_files = glob.glob(os.path.join(MOUNT_PATH, "**", "*.strm"), recursive=True)
+    
+    for strm_path in strm_files:
+        # Extraer información de la ruta
+        rel_path = os.path.relpath(strm_path, MOUNT_PATH)
+        parts = rel_path.split(os.sep)
+        
+        if len(parts) < 2:
+            continue
+        
+        category = parts[0]  # movies, series, music, others
+        
+        # Extraer hash del nombre de carpeta
+        folder_name = parts[-2] if len(parts) > 1 else None
+        hash_match = None
+        if folder_name:
+            match = re.search(r'\{([a-f0-9]+)\}', folder_name)
+            if match:
+                hash_match = match.group(1)
+        
+        if hash_match:
+            resolution_folder = None
+            if category == 'movies' and len(parts) >= 3:
+                resolution_folder = parts[1]  # 2160, 1080, etc.
+            
+            locations[hash_match] = {
+                'path': strm_path,
+                'category': category,
+                'resolution_folder': resolution_folder,
+                'folder_name': folder_name,
+            }
+    
+    return locations
+
+def detect_manual_changes(db_data: List[Dict], current_locations: Dict) -> List[Dict]:
+    """
+    Detecta cambios manuales comparando DB con filesystem actual.
+    
+    Args:
+        db_data: Lista de registros de la base de datos
+        current_locations: Dict de ubicaciones actuales del filesystem
+        
+    Returns:
+        Lista de registros que necesitan actualización
+    """
+    changes = []
+    
+    for record in db_data:
+        hash = record.get('folder_hash', '')[:8]  # Primeros 8 chars
+        
+        if not hash:
+            continue
+        
+        # Ubicación esperada según DB
+        db_category = record.get('current_category', 'movies')
+        db_resolution = record.get('current_resolution_folder')
+        
+        # Ubicación actual en filesystem
+        current = current_locations.get(hash)
+        
+        if not current:
+            # Archivo no encontrado, podría estar eliminado
+            continue
+        
+        # Comparar ubicaciones
+        if (current['category'] != db_category or 
+            current['resolution_folder'] != db_resolution):
+            
+            logger.info(f"Cambio manual detectado para {hash}: "
+                        f"{db_category}/{db_resolution} -> "
+                        f"{current['category']}/{current['resolution_folder']}")
+            
+            changes.append({
+                'record': record,
+                'new_category': current['category'],
+                'new_resolution': current['resolution_folder'],
+                'manual_override': True,
+            })
+    
+    return changes
