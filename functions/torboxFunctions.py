@@ -6,6 +6,7 @@ from library.torbox import TORBOX_API_KEY
 from library.app import SCAN_METADATA
 from functions.mediaFunctions import constructSeriesTitle, cleanTitle, cleanYear
 from functions.databaseFunctions import insertData
+from functions.classificationFunctions import extract_resolution, classify_media_type
 import os
 import logging
 import traceback
@@ -56,6 +57,15 @@ def process_file(item, file, type):
 
     metadata, _, _ = searchMetadata(title_data.get("title", file.get("short_name")), title_data, file.get("short_name"), f"{item.get('name')} {file.get('short_name')}", item.get("hash"), item.get("name"))
     data.update(metadata)
+    
+    # Clasificar automáticamente
+    resolution = extract_resolution(file.get("short_name"), title_data)
+    media_type = classify_media_type(title_data, file.get("mimetype"))
+    
+    # Guardar en metadata para uso posterior
+    data['resolution'] = resolution
+    data['media_type'] = media_type
+    
     logging.debug(data)
     insertData(data, type.value)
     return data
