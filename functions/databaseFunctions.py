@@ -53,6 +53,12 @@ def clearDatabase(type: str):
 def insertData(data: dict, type: str):
     """
     Inserts data into the database with thread safety.
+    
+    Expected fields for media tracking:
+    - current_category: str - Current category (movies, series, music, others)
+    - current_resolution_folder: str - Current resolution folder (2160, 1080, 720, 480, unknown, null)
+    - manual_override: bool - Indicates if user manually moved the file
+    - last_seen_path: str - Last physical path detected for the file
     """
     db = getDatabase(type)
     db_lock = getDatabaseLock(type)
