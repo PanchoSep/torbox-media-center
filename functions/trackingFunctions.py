@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
-from functions.databaseFunctions import getAllData, insertData
+from tinydb import Query
+from functions.databaseFunctions import getDatabase, getDatabaseLock
 
 logger = logging.getLogger(__name__)
 
@@ -15,18 +16,21 @@ def getData(torbox_hash: str, db_type: str = "tracking") -> Optional[dict]:
     Returns:
         Dictionary con los datos del registro o None si no existe
     """
-    data, success, message = getAllData(db_type)
+    db = getDatabase(db_type)
+    db_lock = getDatabaseLock(db_type)
     
-    if not success or data is None:
-        logger.error(f"Error retrieving data from database: {message}")
+    if db is None or db_lock is None:
+        logger.error(f"Database connection failed for {db_type}")
         return None
     
-    # Buscar el registro con el hash correspondiente
-    for record in data:
-        if record.get('hash') == torbox_hash:
-            return record
-    
-    return None
+    with db_lock:
+        try:
+            q = Query()
+            results = db.search(q.hash == torbox_hash)
+            return results[0] if results else None
+        except Exception as e:
+            logger.error(f"Error searching database: {e}")
+            return None
 
 def detect_manual_move(torbox_hash: str, current_path: str) -> bool:
     """
@@ -62,7 +66,7 @@ def detect_manual_move(torbox_hash: str, current_path: str) -> bool:
     return True
 
 def update_tracking(torbox_hash: str, category: str, resolution_folder: Optional[str], 
-                   current_path: str, manual_override: bool = False):
+                   current_path: str, manual_override: bool = False) -> tuple[bool, str]:
     """
     Actualiza el tracking de un archivo en la base de datos.
     
@@ -72,7 +76,26 @@ def update_tracking(torbox_hash: str, category: str, resolution_folder: Optional
         resolution_folder: Carpeta de resolución (2160, 1080, 720, 480, unknown, None)
         current_path: Ruta actual del archivo
         manual_override: Si True, marca que el usuario movió el archivo manualmente
+    
+    Returns:
+        tuple[bool, str]: (success, message)
     """
+    # Validar parámetros
+    if not torbox_hash or not isinstance(torbox_hash, str):
+        return False, "Invalid torbox_hash parameter"
+    
+    if not category or category not in ['movies', 'series', 'music', 'others']:
+        return False, f"Invalid category: {category}"
+    
+    if not current_path or not isinstance(current_path, str):
+        return False, "Invalid current_path parameter"
+    
+    db = getDatabase("tracking")
+    db_lock = getDatabaseLock("tracking")
+    
+    if db is None or db_lock is None:
+        return False, "Database connection failed"
+    
     data = {
         'hash': torbox_hash,
         'current_category': category,
@@ -81,9 +104,21 @@ def update_tracking(torbox_hash: str, category: str, resolution_folder: Optional
         'manual_override': manual_override
     }
     
-    success, message = insertData(data, "tracking")
-    
-    if success:
-        logger.debug(f"Updated tracking for {torbox_hash}: {category}/{resolution_folder}")
-    else:
-        logger.error(f"Failed to update tracking for {torbox_hash}: {message}")
+    with db_lock:
+        try:
+            q = Query()
+            existing = db.search(q.hash == torbox_hash)
+            
+            if existing:
+                # Actualizar registro existente
+                db.update(data, q.hash == torbox_hash)
+                logger.debug(f"Updated tracking for {torbox_hash}: {category}/{resolution_folder}")
+                return True, "Tracking updated successfully"
+            else:
+                # Insertar nuevo registro
+                db.insert(data)
+                logger.debug(f"Inserted tracking for {torbox_hash}: {category}/{resolution_folder}")
+                return True, "Tracking inserted successfully"
+        except Exception as e:
+            logger.error(f"Failed to update tracking for {torbox_hash}: {e}")
+            return False, f"Error updating tracking: {e}"
