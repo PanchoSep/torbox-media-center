@@ -7,6 +7,8 @@ from library.app import SCAN_METADATA
 from functions.mediaFunctions import constructSeriesTitle, cleanTitle, cleanYear
 from functions.databaseFunctions import insertData
 from functions.classificationFunctions import extract_resolution, classify_media_type
+from functions.folderNamingFunctions import format_movie_folder, format_series_folder
+from library.app import ENHANCED_FOLDER_STRUCTURE, FORCE_RECLASSIFY
 import os
 import logging
 import traceback
@@ -58,13 +60,17 @@ def process_file(item, file, type):
     metadata, _, _ = searchMetadata(title_data.get("title", file.get("short_name")), title_data, file.get("short_name"), f"{item.get('name')} {file.get('short_name')}", item.get("hash"), item.get("name"))
     data.update(metadata)
     
-    # Clasificar automáticamente
-    resolution = extract_resolution(file.get("short_name"), title_data)
-    media_type = classify_media_type(title_data, file.get("mimetype"))
-    
-    # Guardar en metadata para uso posterior
-    data['resolution'] = resolution
-    data['media_type'] = media_type
+    # Clasificar tipo de media y resolución
+    if ENHANCED_FOLDER_STRUCTURE:
+        try:
+            media_category = classify_media_type(title_data, file.get('mimetype'))
+            resolution_folder = extract_resolution(file.get('short_name'), title_data)
+            
+            data['current_category'] = media_category
+            data['current_resolution_folder'] = resolution_folder if media_category == 'movies' else None
+            data['manual_override'] = False
+        except Exception as e:
+            logging.warning(f"Error en clasificación automática: {e}")
     
     logging.debug(data)
     insertData(data, type.value)
