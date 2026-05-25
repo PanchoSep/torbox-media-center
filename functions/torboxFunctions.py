@@ -196,7 +196,27 @@ def searchMetadata(query: str, title_data: dict, file_name: str, full_title: str
         base_metadata["metadata_link"] = data.get("link")
         base_metadata["metadata_image"] = data.get("image")
         base_metadata["metadata_backdrop"] = data.get("backdrop")
-        base_metadata["metadata_rootfoldername"] = f"{title} ({base_metadata['metadata_years']})"
+        
+        # Generar nombre de carpeta raíz
+        if ENHANCED_FOLDER_STRUCTURE:
+            if data.get("type") == "series" or data.get("type") == "anime":
+                base_metadata["metadata_rootfoldername"] = format_series_folder(
+                    title=title,
+                    year=base_metadata['metadata_years'],
+                    resolution=title_data.get('resolution'),
+                    hash=hash
+                )
+            elif data.get("type") == "movie":
+                base_metadata["metadata_rootfoldername"] = format_movie_folder(
+                    title=title,
+                    year=base_metadata['metadata_years'],
+                    resolution=title_data.get('resolution'),
+                    quality=title_data.get('quality'),
+                    hash=hash
+                )
+        else:
+            # Formato original
+            base_metadata["metadata_rootfoldername"] = f"{title} ({base_metadata['metadata_years']})"
 
         return base_metadata, True, f"Metadata found. Searching for {query}, item hash: {hash}"
     except IndexError:
