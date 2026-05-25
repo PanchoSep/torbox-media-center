@@ -216,7 +216,7 @@ def searchMetadata(query: str, title_data: dict, file_name: str, full_title: str
                 )
         else:
             # Formato original
-            base_metadata["metadata_rootfoldername"] = f"{title} ({base_metadata['metadata_years']})"
+            base_metadata["metadata_rootfoldername"] = f"{title} ({base_metadata['metadata_years']})" if base_metadata['metadata_years'] else title
 
         return base_metadata, True, f"Metadata found. Searching for {query}, item hash: {hash}"
     except IndexError:
