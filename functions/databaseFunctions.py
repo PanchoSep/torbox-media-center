@@ -54,10 +54,10 @@ def insertData(data: dict, type: str):
     """
     Inserts data into the database with thread safety.
     
-    Expected fields for media tracking:
-    - current_category: str - Current category (movies, series, music, others)
-    - current_resolution_folder: str - Current resolution folder (2160, 1080, 720, 480, unknown, null)
-    - manual_override: bool - Indicates if user manually moved the file
+    Expected fields for media tracking (all optional):
+    - current_category: str - Current category (movies, series, music, others). None if not determined yet.
+    - current_resolution_folder: str - Current resolution folder (2160, 1080, 720, 480, unknown, None)
+    - manual_override: bool - True if user manually moved the file, False if moved automatically
     - last_seen_path: str - Last physical path detected for the file
     """
     db = getDatabase(type)
