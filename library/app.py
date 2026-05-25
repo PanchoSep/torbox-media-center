@@ -7,6 +7,10 @@ load_dotenv()
 SCAN_METADATA = os.getenv("ENABLE_METADATA", "false").lower() == "true"
 RAW_MODE = os.getenv("RAW_MODE", "false").lower() == "true"
 
+# Enhanced folder structure settings
+ENHANCED_FOLDER_STRUCTURE = os.getenv('ENHANCED_FOLDER_STRUCTURE', 'false').lower() == 'true'
+FORCE_RECLASSIFY = os.getenv('FORCE_RECLASSIFY', 'false').lower() == 'true'
+
 class MountRefreshTimes(Enum):
     # times are shown in hours
     slowest = 24 # 24 hours
