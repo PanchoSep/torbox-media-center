@@ -63,35 +63,68 @@ def generateFolderPath(data: dict) -> str | None:
 
 def generateStremFile(file_path: str, url: str, type: str, file_name: str, download=None):
     from library.app import ENHANCED_FOLDER_STRUCTURE
+    from functions.trackingFunctions import should_update_strm, update_tracking, getData
     
-    if RAW_MODE:
-        if download:
-            original_path = download.get("path")
-            if original_path:
-                full_path = os.path.join(MOUNT_PATH, os.path.dirname(original_path))
+    # Obtener hash del download (primeros 8 chars del folder_hash)
+    torbox_hash = None
+    if download:
+        folder_hash = download.get("folder_hash", "")
+        if folder_hash:
+            torbox_hash = folder_hash[:8]
+    
+    # Verificar si ya existe en tracking y usar ese path
+    existing_tracking = None
+    if torbox_hash:
+        existing_tracking = getData(torbox_hash)
+    
+    if existing_tracking and existing_tracking.get('last_seen_path'):
+        # Usar el path guardado en tracking
+        strm_file_path = existing_tracking['last_seen_path']
+        full_path = os.path.dirname(strm_file_path)
+        logging.debug(f"Using tracked path for {torbox_hash}: {strm_file_path}")
+    else:
+        # Generar path nuevo (primera vez o no encontrado)
+        if RAW_MODE:
+            if download:
+                original_path = download.get("path")
+                if original_path:
+                    full_path = os.path.join(MOUNT_PATH, os.path.dirname(original_path))
+                else:
+                    full_path = os.path.join(MOUNT_PATH, file_path)
             else:
                 full_path = os.path.join(MOUNT_PATH, file_path)
+        elif ENHANCED_FOLDER_STRUCTURE and download:
+            # Nueva estructura con categorías
+            category = download.get("current_category", "movies")
+            full_path = os.path.join(MOUNT_PATH, category, file_path)
         else:
-            full_path = os.path.join(MOUNT_PATH, file_path)
-    elif ENHANCED_FOLDER_STRUCTURE and download:
-        # Nueva estructura con categorías
-        category = download.get("current_category", "movies")
-        full_path = os.path.join(MOUNT_PATH, category, file_path)
-    else:
-        # Estructura original
-        if type == "movie":
-            type = "movies"
-        elif type == "series":
-            type = "series"
-        elif type == "anime":
-            type = "series"
-        full_path = os.path.join(MOUNT_PATH, type, file_path)
+            # Estructura original
+            if type == "movie":
+                type = "movies"
+            elif type == "series":
+                type = "series"
+            elif type == "anime":
+                type = "series"
+            full_path = os.path.join(MOUNT_PATH, type, file_path)
+        
+        strm_file_path = f"{full_path}/{file_name}.strm"
+        logging.debug(f"Generated new path for {torbox_hash}: {strm_file_path}")
+    
+    # Verificar si necesita actualización
+    if torbox_hash and not should_update_strm(torbox_hash, strm_file_path, url):
+        logging.debug(f"Skipped strm file (unchanged): {strm_file_path}")
+        return True
     
     try:
         os.makedirs(full_path, exist_ok=True)
-        with open(f"{full_path}/{file_name}.strm", "w") as file:
+        with open(strm_file_path, "w") as file:
             file.write(url)
-        logging.debug(f"Created strm file: {full_path}/{file_name}.strm")
+        
+        # Actualizar tracking
+        if torbox_hash:
+            update_tracking(torbox_hash, strm_file_path, url)
+        
+        logging.debug(f"Created/updated strm file: {strm_file_path}")
         return True
     except FileNotFoundError as e:
         logging.error(f"Error creating strm file (likely bad naming scheme of file): {e}")
@@ -142,29 +175,10 @@ def ensureFolderStructure():
             logging.info(f"Created folder: {folder}")
 
 def runStrm():
-    from library.app import ENHANCED_FOLDER_STRUCTURE, FORCE_RECLASSIFY
-    from functions.trackingFunctions import scan_current_locations, detect_manual_changes
-    from functions.databaseFunctions import updateData
-    
     # Asegurar que la estructura de carpetas existe
     ensureFolderStructure()
     
     all_downloads = getAllUserDownloads()
-    
-    # Detectar cambios manuales si no estamos forzando reclasificación
-    if ENHANCED_FOLDER_STRUCTURE and not FORCE_RECLASSIFY:
-        current_locations = scan_current_locations()
-        changes = detect_manual_changes(all_downloads, current_locations)
-        
-        # Aplicar cambios detectados
-        for change in changes:
-            record = change['record']
-            record['current_category'] = change['new_category']
-            record['current_resolution_folder'] = change['new_resolution']
-            record['manual_override'] = True
-            
-            # Actualizar en DB
-            updateData(record, record.get('type'))
     
     # Get all existing .strm files
     existing_strm_files = set(glob.glob(os.path.join(MOUNT_PATH, "**", "*.strm"), recursive=True))

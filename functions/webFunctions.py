@@ -79,7 +79,7 @@ def scanLibrary() -> Dict[str, List[Dict]]:
                 # Separar resolución y formato
                 parts_format = format_str.split(maxsplit=1)
                 if len(parts_format) >= 1:
-                    resolution = parts_format[0].replace('p', '')  # "1080p" -> "1080"
+                    resolution = parts_format[0].rstrip('p')  # "1080p" -> "1080"
                 if len(parts_format) >= 2:
                     format_type = parts_format[1]
         
@@ -93,7 +93,6 @@ def scanLibrary() -> Dict[str, List[Dict]]:
         
         # Buscar tracking info
         tracking_data = getData(hash_match, "tracking")
-        manual_override = tracking_data.get('manual_override', False) if tracking_data else False
         added_at = tracking_data.get('added_at', 0) if tracking_data else 0
         
         # Buscar información de expiración en las bases de datos de torrents/usenet/webdl
@@ -129,7 +128,6 @@ def scanLibrary() -> Dict[str, List[Dict]]:
             'current_path': folder_path,
             'strm_path': strm_path,
             'strm_filename': strm_filename,
-            'manual_override': manual_override,
             'file_count': file_count,
             'added_at': added_at,
             'expires_at': expires_at,
@@ -214,17 +212,35 @@ def moveContent(hash: str, to_category: str, to_resolution: Optional[str] = None
         shutil.move(current_folder, dest_folder)
         logger.info(f"Moved {current_folder} -> {dest_folder}")
         
-        # Actualizar tracking con manual_override=True
-        success, msg = update_tracking(
-            torbox_hash=hash,
-            category=to_category,
-            resolution_folder=to_resolution,
-            current_path=dest_folder,
-            manual_override=True
-        )
+        # Actualizar tracking con nuevo path
+        # Buscar el archivo .strm en la nueva ubicación
+        import time
+        time.sleep(0.1)  # Pequeño delay para que el filesystem se sincronice
         
-        if not success:
-            logger.warning(f"Failed to update tracking: {msg}")
+        strm_files = []
+        # Buscar recursivamente
+        for root, dirs, files in os.walk(dest_folder):
+            for file in files:
+                if file.endswith('.strm'):
+                    strm_files.append(os.path.join(root, file))
+        
+        if strm_files:
+            strm_path = strm_files[0]
+            logger.info(f"Found strm file for tracking update: {strm_path}")
+            # Leer contenido del .strm
+            try:
+                with open(strm_path, 'r', encoding='utf-8') as f:
+                    strm_content = f.read().strip()
+                
+                success, msg = update_tracking(hash, strm_path, strm_content)
+                if success:
+                    logger.info(f"Updated tracking for {hash}: {msg}")
+                else:
+                    logger.warning(f"Failed to update tracking: {msg}")
+            except Exception as e:
+                logger.warning(f"Failed to read strm file for tracking update: {e}")
+        else:
+            logger.warning(f"No strm files found in {dest_folder} for tracking update")
         
         return True, f"Archivo movido exitosamente a {to_category}/{to_resolution or ''}", dest_folder
         
@@ -369,13 +385,8 @@ def getStats() -> Dict:
         res = file['resolution']
         by_resolution[res] = by_resolution.get(res, 0) + 1
     
-    manual_overrides = 0
-    for files in library.values():
-        manual_overrides += sum(1 for f in files if f['manual_override'])
-    
     return {
         'total_files': total_files,
         'by_category': by_category,
-        'by_resolution': by_resolution,
-        'manual_overrides': manual_overrides
+        'by_resolution': by_resolution
     }
