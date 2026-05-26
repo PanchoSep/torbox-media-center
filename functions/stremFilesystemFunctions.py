@@ -103,10 +103,51 @@ def generateStremFile(file_path: str, url: str, type: str, file_name: str, downl
         logging.error(f"Error creating strm file: {e}")
         return False
 
+def ensureFolderStructure():
+    """
+    Crea la estructura de carpetas base al inicio.
+    """
+    from library.app import ENHANCED_FOLDER_STRUCTURE
+    
+    if ENHANCED_FOLDER_STRUCTURE:
+        # Estructura mejorada: movies con resoluciones, series, music, others
+        base_folders = [
+            os.path.join(MOUNT_PATH, "movies"),
+            os.path.join(MOUNT_PATH, "series"),
+            os.path.join(MOUNT_PATH, "music"),
+            os.path.join(MOUNT_PATH, "others"),
+        ]
+        
+        # Subcarpetas de resolución para movies
+        resolution_folders = [
+            os.path.join(MOUNT_PATH, "movies", "2160"),
+            os.path.join(MOUNT_PATH, "movies", "1080"),
+            os.path.join(MOUNT_PATH, "movies", "720"),
+            os.path.join(MOUNT_PATH, "movies", "480"),
+            os.path.join(MOUNT_PATH, "movies", "unknown"),
+        ]
+        
+        all_folders = base_folders + resolution_folders
+    else:
+        # Estructura original: solo movies y series
+        all_folders = [
+            os.path.join(MOUNT_PATH, "movies"),
+            os.path.join(MOUNT_PATH, "series"),
+        ]
+    
+    # Crear todas las carpetas
+    for folder in all_folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder, exist_ok=True)
+            logging.info(f"Created folder: {folder}")
+
 def runStrm():
     from library.app import ENHANCED_FOLDER_STRUCTURE, FORCE_RECLASSIFY
     from functions.trackingFunctions import scan_current_locations, detect_manual_changes
     from functions.databaseFunctions import updateData
+    
+    # Asegurar que la estructura de carpetas existe
+    ensureFolderStructure()
     
     all_downloads = getAllUserDownloads()
     
