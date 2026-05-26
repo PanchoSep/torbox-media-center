@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TorBox Media Center - Administración</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 TorBox Media Center</h1>
+            <p class="subtitle">Administración de Biblioteca</p>
+        </header>
+
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button id="btn-refresh" class="btn btn-primary">
+                    <span class="icon">🔄</span> Refresh
+                </button>
+                <button id="btn-stats" class="btn btn-secondary">
+                    <span class="icon">📊</span> Estadísticas
+                </button>
+            </div>
+            <div class="toolbar-right">
+                <input type="text" id="search-input" placeholder="🔍 Buscar por título..." class="search-input">
+            </div>
+        </div>
+
+        <div class="filters">
+            <label>
+                Categoría:
+                <select id="filter-category" class="filter-select">
+                    <option value="all">Todas</option>
+                    <option value="movies">Movies</option>
+                    <option value="series">Series</option>
+                    <option value="music">Music</option>
+                    <option value="others">Others</option>
+                </select>
+            </label>
+            <label>
+                Resolución:
+                <select id="filter-resolution" class="filter-select">
+                    <option value="all">Todas</option>
+                    <option value="2160">2160p (4K)</option>
+                    <option value="1080">1080p (Full HD)</option>
+                    <option value="720">720p (HD)</option>
+                    <option value="480">480p (SD)</option>
+                    <option value="unknown">Unknown</option>
+                </select>
+            </label>
+        </div>
+
+        <div id="bulk-actions" class="bulk-actions" style="display: none;">
+            <div class="bulk-info">
+                <span id="selected-count">0</span> archivos seleccionados
+            </div>
+            <div class="bulk-buttons">
+                <select id="bulk-category" class="bulk-select">
+                    <option value="">Mover a...</option>
+                    <option value="movies">Movies</option>
+                    <option value="series">Series</option>
+                    <option value="music">Music</option>
+                    <option value="others">Others</option>
+                </select>
+                <select id="bulk-resolution" class="bulk-select" style="display: none;">
+                    <option value="">Resolución...</option>
+                    <option value="2160">2160p</option>
+                    <option value="1080">1080p</option>
+                    <option value="720">720p</option>
+                    <option value="480">480p</option>
+                    <option value="unknown">Unknown</option>
+                </select>
+                <button id="btn-bulk-move" class="btn btn-primary" disabled>
+                    <span class="icon">📁</span> Mover
+                </button>
+                <button id="btn-bulk-delete" class="btn btn-danger">
+                    <span class="icon">🗑️</span> Eliminar
+                </button>
+                <button id="btn-deselect-all" class="btn btn-secondary">
+                    <span class="icon">✖️</span> Deseleccionar
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Cargando...</p>
+        </div>
+
+        <div id="library-container" class="library-container">
+            <!-- Contenido dinámico -->
+        </div>
+
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <!-- Modal de confirmación -->
+    <div id="modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modal-title">Confirmar acción</h3>
+            <p id="modal-message"></p>
+            <div class="modal-buttons">
+                <button id="modal-confirm" class="btn btn-danger">Confirmar</button>
+                <button id="modal-cancel" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

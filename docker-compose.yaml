@@ -2,17 +2,26 @@ name: torbox-media-center
 services:
     torbox-media-center:
         container_name: torbox-media-center
+        build:
+            context: .
+            dockerfile: dockerfile
         stdin_open: true
         tty: true
         restart: always
         volumes:
-            - /home/$(whoami)/torbox:/torbox
+            - ./torbox:/torbox
+            - ./db.json:/app/db.json
+            - ./tracking.json:/app/tracking.json
+        ports:
+            - "8080:8080"
         environment:
-            - TORBOX_API_KEY=<input your api key>
-            - MOUNT_METHOD=strm
-            - MOUNT_PATH=/torbox
-            - RAW_MODE=false
-            - ENABLE_METADATA=false
-            - MOUNT_REFRESH_TIME=slow
-        image: anonymoussystems/torbox-media-center:main
-     
+            - TORBOX_API_KEY=${TORBOX_API_KEY}
+            - MOUNT_METHOD=${MOUNT_METHOD:-strm}
+            - MOUNT_PATH=${MOUNT_PATH:-/torbox}
+            - RAW_MODE=${RAW_MODE:-false}
+            - ENABLE_METADATA=${ENABLE_METADATA:-false}
+            - MOUNT_REFRESH_TIME=${MOUNT_REFRESH_TIME:-slow}
+            - ENHANCED_FOLDER_STRUCTURE=${ENHANCED_FOLDER_STRUCTURE:-false}
+            - FORCE_RECLASSIFY=${FORCE_RECLASSIFY:-false}
+            - WEB_INTERFACE_ENABLED=${WEB_INTERFACE_ENABLED:-true}
+            - WEB_INTERFACE_PORT=${WEB_INTERFACE_PORT:-5000}

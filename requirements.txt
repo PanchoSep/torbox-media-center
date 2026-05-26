@@ -6,3 +6,5 @@ parse-torrent-title
 fuse-python; sys_platform != "win32" and sys_platform != "darwin"
 git+https://github.com/libfuse/python-fuse; sys_platform == "darwin"
 GitPython
+Flask==3.0.0
+flask-cors==4.0.0

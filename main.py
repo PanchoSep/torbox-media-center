@@ -4,6 +4,8 @@ from functions.appFunctions import bootUp, getMountMethod, getAllUserDownloadsFr
 from functions.databaseFunctions import closeAllDatabases
 import logging
 from sys import platform
+import threading
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -11,6 +13,17 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("werkzeug").setLevel(logging.WARNING)
+
+def start_web_interface():
+    """Inicia la interfaz web en un thread separado"""
+    try:
+        web_port = int(os.getenv('WEB_INTERFACE_PORT', '5000'))
+        from web.app import start_web_server
+        logging.info(f"Starting web interface on port {web_port}")
+        start_web_server(port=web_port, host='0.0.0.0')
+    except Exception as e:
+        logging.error(f"Failed to start web interface: {e}")
 
 if __name__ == "__main__":
     bootUp()
@@ -26,6 +39,13 @@ if __name__ == "__main__":
     else:
         logging.error("Invalid mount method specified.")
         exit(1)
+
+    # Iniciar interfaz web en thread separado (siempre activo)
+    web_enabled = os.getenv('WEB_INTERFACE_ENABLED', 'true').lower() == 'true'
+    if web_enabled:
+        web_thread = threading.Thread(target=start_web_interface, daemon=True, name="WebInterface")
+        web_thread.start()
+        logging.info("Web interface thread started")
 
     user_downloads = getAllUserDownloadsFresh()
 

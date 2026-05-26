@@ -17,6 +17,9 @@ The TorBox Media Center allows you to easily mount your TorBox media in a no-fri
 - Compatible with all systems and OS *(when using the `strm` mount method)*
 - No limit on library size
 - Automatically updating library and mounts
+- **🌐 Web interface for managing your library** *(new!)*
+- **📦 Bulk operations: move and delete multiple files** *(new!)*
+- **🔍 Search and filter your media** *(new!)*
 
 ### 🤖 Comparison to Zurg
 
@@ -100,6 +103,10 @@ To run this project you will need to add the following environment variables to 
 
 `RAW_MODE` This option determines whether you want the raw file structure (similar to what you would see with webdav). Setting this to `true` will present the files in the original structure. If this is enabled, the `ENABLE_METADATA` option is disabled.
 
+`WEB_INTERFACE_ENABLED` Enables the web interface for managing your library. Access it at `http://localhost:8080`. Default: `true`. This is optional.
+
+`WEB_INTERFACE_PORT` Port for the web interface. Default: `8080`. This is optional.
+
 ## 🐳 Running on Docker with one command (recommended)
 
 We provide bash scripts for running the TorBox Media Center easily by simply copying the script to your server or computer, and running it, following the prompts. This can be helpful if you aren't familiar with Docker, permissions or servers in general. Simply choose one in [this folder](https://github.com/TorBox-App/torbox-media-center/blob/main/scripts) that pertains to your system and run it in the terminal.
@@ -115,6 +122,7 @@ docker run -it -d \
     --restart=always \
     --init \
     -v /home/$(whoami)/torbox:/torbox \
+    -p 8080:8080 \
     -e TORBOX_API_KEY=<EDIT_THIS_KEY> \
     -e MOUNT_METHOD=strm \
     -e MOUNT_PATH=/torbox \
@@ -133,6 +141,8 @@ services:
         restart: always
         volumes:
             - /home/$(whoami)/torbox:/torbox
+        ports:
+            - "8080:8080"
         environment:
             - TORBOX_API_KEY=<EDIT_THIS_KEY>
             - MOUNT_METHOD=strm
@@ -195,6 +205,24 @@ python3 main.py
 ```
 
 7. Wait for the files to be mounted to your local machine.
+
+## 🌐 Web Interface
+
+TorBox Media Center includes a web interface for managing your library. Access it at:
+
+```
+http://localhost:8080
+```
+
+Features:
+- 📁 Move files between categories (movies, series, music, others)
+- 📺 Change movie resolutions (2160p, 1080p, 720p, 480p)
+- 🗑️ Delete files from your library
+- 📦 Bulk operations: select and move/delete multiple files
+- 🔍 Search and filter your media
+- 📊 View library statistics
+
+For detailed documentation, see [WEB_INTERFACE.md](WEB_INTERFACE.md).
 
 ## 🩺 Troubleshooting ##
 

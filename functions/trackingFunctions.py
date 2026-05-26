@@ -80,6 +80,8 @@ def update_tracking(torbox_hash: str, category: str, resolution_folder: Optional
     Returns:
         tuple[bool, str]: (success, message)
     """
+    import time
+    
     # Validar parámetros
     if not torbox_hash or not isinstance(torbox_hash, str):
         return False, "Invalid torbox_hash parameter"
@@ -110,12 +112,15 @@ def update_tracking(torbox_hash: str, category: str, resolution_folder: Optional
             existing = db.search(q.hash == torbox_hash)
             
             if existing:
-                # Actualizar registro existente
+                # Actualizar registro existente (preservar added_at)
+                if 'added_at' in existing[0]:
+                    data['added_at'] = existing[0]['added_at']
                 db.update(data, q.hash == torbox_hash)
                 logger.debug(f"Updated tracking for {torbox_hash}: {category}/{resolution_folder}")
                 return True, "Tracking updated successfully"
             else:
-                # Insertar nuevo registro
+                # Insertar nuevo registro con timestamp
+                data['added_at'] = time.time()
                 db.insert(data)
                 logger.debug(f"Inserted tracking for {torbox_hash}: {category}/{resolution_folder}")
                 return True, "Tracking inserted successfully"
