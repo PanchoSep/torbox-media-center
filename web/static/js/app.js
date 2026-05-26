@@ -6,11 +6,14 @@ let currentFilters = {
     resolution: 'all',
     search: ''
 };
+let collapsedCategories = new Set();
+let collapsedResolutions = new Set();
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
     initEventListeners();
     loadLibrary();
+    loadCollapsedState();
 });
 
 // Event Listeners
@@ -32,6 +35,53 @@ function initEventListeners() {
     
     // Modal
     document.getElementById('modal-cancel').addEventListener('click', hideModal);
+}
+
+// Collapsed State Management
+function loadCollapsedState() {
+    const savedCategories = localStorage.getItem('collapsedCategories');
+    const savedResolutions = localStorage.getItem('collapsedResolutions');
+    
+    if (savedCategories) {
+        collapsedCategories = new Set(JSON.parse(savedCategories));
+    }
+    if (savedResolutions) {
+        collapsedResolutions = new Set(JSON.parse(savedResolutions));
+    }
+}
+
+function saveCollapsedState() {
+    localStorage.setItem('collapsedCategories', JSON.stringify([...collapsedCategories]));
+    localStorage.setItem('collapsedResolutions', JSON.stringify([...collapsedResolutions]));
+}
+
+function toggleCategory(category) {
+    if (collapsedCategories.has(category)) {
+        collapsedCategories.delete(category);
+    } else {
+        collapsedCategories.add(category);
+    }
+    saveCollapsedState();
+    
+    const section = document.querySelector(`.category-section[data-category="${category}"]`);
+    if (section) {
+        section.classList.toggle('collapsed');
+    }
+}
+
+function toggleResolution(category, resolution) {
+    const key = `${category}-${resolution}`;
+    if (collapsedResolutions.has(key)) {
+        collapsedResolutions.delete(key);
+    } else {
+        collapsedResolutions.add(key);
+    }
+    saveCollapsedState();
+    
+    const group = document.querySelector(`.resolution-group[data-resolution="${key}"]`);
+    if (group) {
+        group.classList.toggle('collapsed');
+    }
 }
 
 // API Calls
@@ -152,21 +202,40 @@ function renderLibrary() {
         section.className = 'category-section';
         section.dataset.category = category;
         
+        if (collapsedCategories.has(category)) {
+            section.classList.add('collapsed');
+        }
+        
         // Header
         const header = document.createElement('div');
         header.className = 'category-header';
         header.innerHTML = `
-            <div class="category-title">
-                <span class="icon">${categoryIcons[category]}</span>
-                ${category.charAt(0).toUpperCase() + category.slice(1)}
-                <span class="category-count">${filteredFiles.length}</span>
+            <div class="category-header-left">
+                <span class="collapse-icon">▼</span>
+                <div class="category-title">
+                    <span class="icon">${categoryIcons[category]}</span>
+                    ${category.charAt(0).toUpperCase() + category.slice(1)}
+                    <span class="category-count">${filteredFiles.length}</span>
+                </div>
             </div>
-            <div class="select-all-container">
+            <div class="select-all-container" onclick="event.stopPropagation()">
                 <input type="checkbox" id="select-all-${category}" class="file-checkbox">
-                <label for="select-all-${category}">Seleccionar todos</label>
+                <label for="select-all-${category}">Todo</label>
             </div>
         `;
+        
+        // Toggle collapse on header click
+        header.addEventListener('click', (e) => {
+            if (!e.target.closest('.select-all-container')) {
+                toggleCategory(category);
+            }
+        });
+        
         section.appendChild(header);
+        
+        // Content wrapper
+        const content = document.createElement('div');
+        content.className = 'category-content';
         
         // Select all checkbox
         const selectAllCheckbox = header.querySelector(`#select-all-${category}`);
@@ -178,22 +247,38 @@ function renderLibrary() {
         if (category === 'movies') {
             const grouped = groupByResolution(filteredFiles);
             Object.keys(grouped).sort().reverse().forEach(resolution => {
+                const resolutionKey = `${category}-${resolution}`;
                 const resolutionGroup = document.createElement('div');
                 resolutionGroup.className = 'resolution-group';
+                resolutionGroup.dataset.resolution = resolutionKey;
+                
+                if (collapsedResolutions.has(resolutionKey)) {
+                    resolutionGroup.classList.add('collapsed');
+                }
                 
                 const resolutionHeader = document.createElement('div');
                 resolutionHeader.className = 'resolution-header';
-                resolutionHeader.textContent = `${resolution}p (${grouped[resolution].length})`;
+                resolutionHeader.innerHTML = `
+                    <span>${resolution}p (${grouped[resolution].length})</span>
+                    <span class="resolution-collapse-icon">▼</span>
+                `;
+                resolutionHeader.addEventListener('click', () => {
+                    toggleResolution(category, resolution);
+                });
                 resolutionGroup.appendChild(resolutionHeader);
+                
+                const resolutionContent = document.createElement('div');
+                resolutionContent.className = 'resolution-content';
                 
                 const fileList = document.createElement('div');
                 fileList.className = 'file-list';
                 grouped[resolution].forEach(file => {
                     fileList.appendChild(createFileItem(file, category));
                 });
-                resolutionGroup.appendChild(fileList);
+                resolutionContent.appendChild(fileList);
+                resolutionGroup.appendChild(resolutionContent);
                 
-                section.appendChild(resolutionGroup);
+                content.appendChild(resolutionGroup);
             });
         } else {
             const fileList = document.createElement('div');
@@ -201,9 +286,10 @@ function renderLibrary() {
             filteredFiles.forEach(file => {
                 fileList.appendChild(createFileItem(file, category));
             });
-            section.appendChild(fileList);
+            content.appendChild(fileList);
         }
         
+        section.appendChild(content);
         container.appendChild(section);
     });
     
@@ -228,24 +314,15 @@ function createFileItem(file, category) {
     }
     
     const yearText = file.year ? ` (${file.year})` : '';
-    const manualBadge = file.manual_override ? '<span class="file-badge badge-manual">🔒 Manual</span>' : '';
     
-    // Formatear fecha de agregado
-    let addedAtText = 'Fecha desconocida';
-    if (file.added_at && file.added_at > 0) {
-        const date = new Date(file.added_at * 1000);
-        addedAtText = date.toLocaleDateString('es-ES', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    // Badges
+    let badges = [];
+    if (file.manual_override) {
+        badges.push('<span class="file-badge badge-manual">🔒</span>');
     }
     
     // Calcular tiempo restante hasta expiración
-    let expiryBadge = '';
-    let expiryText = '';
+    let expiryInfo = '';
     if (file.expires_at) {
         const now = Date.now();
         const expiresDate = new Date(file.expires_at);
@@ -254,18 +331,18 @@ function createFileItem(file, category) {
         const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         
         if (daysLeft < 0) {
-            expiryText = '⚠️ Expirado';
-            expiryBadge = '<span class="file-badge badge-expired">⚠️ Expirado</span>';
+            badges.push('<span class="file-badge badge-expired">⚠️</span>');
+            expiryInfo = '⚠️ Expirado';
         } else if (daysLeft === 0) {
-            expiryText = `⏰ Expira en ${hoursLeft}h`;
-            expiryBadge = '<span class="file-badge badge-expiring-soon">⏰ Expira hoy</span>';
+            badges.push('<span class="file-badge badge-expiring-soon">⏰</span>');
+            expiryInfo = `⏰ ${hoursLeft}h`;
         } else if (daysLeft < 3) {
-            expiryText = `⏰ Expira en ${daysLeft}d ${hoursLeft}h`;
-            expiryBadge = '<span class="file-badge badge-expiring-soon">⏰ Expira pronto</span>';
+            badges.push('<span class="file-badge badge-expiring-soon">⏰</span>');
+            expiryInfo = `⏰ ${daysLeft}d`;
         } else if (daysLeft < 7) {
-            expiryText = `⏳ Expira en ${daysLeft} días`;
+            expiryInfo = `⏳ ${daysLeft}d`;
         } else {
-            expiryText = `✓ Expira en ${daysLeft} días`;
+            expiryInfo = `✓ ${daysLeft}d`;
         }
     }
     
@@ -273,41 +350,35 @@ function createFileItem(file, category) {
         <div class="file-header">
             <input type="checkbox" class="file-checkbox" data-hash="${file.hash}" ${selectedFiles.has(file.hash) ? 'checked' : ''}>
             <div class="file-title">${file.title}${yearText}</div>
-            ${manualBadge}
-            ${expiryBadge}
-        </div>
-        <div class="file-info">
-            <span>📄 ${file.strm_filename || 'Unknown'}</span>
-            <span>📅 ${addedAtText}</span>
-            ${expiryText ? `<span>${expiryText}</span>` : ''}
+            <div class="file-badges">${badges.join('')}</div>
         </div>
         <div class="file-info">
             <span>📁 ${file.category}</span>
             <span>📺 ${file.resolution}p</span>
             <span>💿 ${file.format}</span>
-            <span>📦 ${file.file_count} archivo(s)</span>
+            ${expiryInfo ? `<span>${expiryInfo}</span>` : ''}
         </div>
         <div class="file-actions">
             <select class="action-category" data-hash="${file.hash}">
-                <option value="">Categoría...</option>
+                <option value="">Cat...</option>
                 <option value="movies" ${category === 'movies' ? 'selected' : ''}>Movies</option>
                 <option value="series" ${category === 'series' ? 'selected' : ''}>Series</option>
                 <option value="music" ${category === 'music' ? 'selected' : ''}>Music</option>
                 <option value="others" ${category === 'others' ? 'selected' : ''}>Others</option>
             </select>
             <select class="action-resolution" data-hash="${file.hash}" ${category !== 'movies' ? 'style="display: none;"' : ''}>
-                <option value="">Resolución...</option>
+                <option value="">Res...</option>
                 <option value="2160" ${file.resolution === '2160' ? 'selected' : ''}>2160p</option>
                 <option value="1080" ${file.resolution === '1080' ? 'selected' : ''}>1080p</option>
                 <option value="720" ${file.resolution === '720' ? 'selected' : ''}>720p</option>
                 <option value="480" ${file.resolution === '480' ? 'selected' : ''}>480p</option>
                 <option value="unknown" ${file.resolution === 'unknown' ? 'selected' : ''}>Unknown</option>
             </select>
-            <button class="btn btn-primary btn-apply" data-hash="${file.hash}">
-                <span class="icon">✓</span> Aplicar
+            <button class="btn btn-primary btn-small btn-apply" data-hash="${file.hash}">
+                ✓
             </button>
-            <button class="btn btn-danger btn-delete" data-hash="${file.hash}">
-                <span class="icon">🗑️</span> Eliminar
+            <button class="btn btn-danger btn-small btn-delete" data-hash="${file.hash}">
+                🗑️
             </button>
         </div>
     `;

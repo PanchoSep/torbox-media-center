@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TorBox Media Center - Administración</title>
+    <title>TorBox Media Center</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📦 TorBox Media Center</h1>
-            <p class="subtitle">Administración de Biblioteca</p>
+            <h1>📦 TorBox</h1>
+            <p class="subtitle">Media Center</p>
         </header>
 
         <div class="toolbar">
@@ -19,17 +19,17 @@
                     <span class="icon">🔄</span> Refresh
                 </button>
                 <button id="btn-stats" class="btn btn-secondary">
-                    <span class="icon">📊</span> Estadísticas
+                    <span class="icon">📊</span> Stats
                 </button>
             </div>
             <div class="toolbar-right">
-                <input type="text" id="search-input" placeholder="🔍 Buscar por título..." class="search-input">
+                <input type="text" id="search-input" placeholder="🔍 Buscar..." class="search-input">
             </div>
         </div>
 
         <div class="filters">
             <label>
-                Categoría:
+                Categoría
                 <select id="filter-category" class="filter-select">
                     <option value="all">Todas</option>
                     <option value="movies">Movies</option>
@@ -39,13 +39,13 @@
                 </select>
             </label>
             <label>
-                Resolución:
+                Resolución
                 <select id="filter-resolution" class="filter-select">
                     <option value="all">Todas</option>
-                    <option value="2160">2160p (4K)</option>
-                    <option value="1080">1080p (Full HD)</option>
-                    <option value="720">720p (HD)</option>
-                    <option value="480">480p (SD)</option>
+                    <option value="2160">2160p</option>
+                    <option value="1080">1080p</option>
+                    <option value="720">720p</option>
+                    <option value="480">480p</option>
                     <option value="unknown">Unknown</option>
                 </select>
             </label>
@@ -53,7 +53,7 @@
 
         <div id="bulk-actions" class="bulk-actions" style="display: none;">
             <div class="bulk-info">
-                <span id="selected-count">0</span> archivos seleccionados
+                <span id="selected-count">0</span> seleccionados
             </div>
             <div class="bulk-buttons">
                 <select id="bulk-category" class="bulk-select">
@@ -64,21 +64,21 @@
                     <option value="others">Others</option>
                 </select>
                 <select id="bulk-resolution" class="bulk-select" style="display: none;">
-                    <option value="">Resolución...</option>
+                    <option value="">Res...</option>
                     <option value="2160">2160p</option>
                     <option value="1080">1080p</option>
                     <option value="720">720p</option>
                     <option value="480">480p</option>
                     <option value="unknown">Unknown</option>
                 </select>
-                <button id="btn-bulk-move" class="btn btn-primary" disabled>
-                    <span class="icon">📁</span> Mover
+                <button id="btn-bulk-move" class="btn btn-primary btn-small" disabled>
+                    📁 Mover
                 </button>
-                <button id="btn-bulk-delete" class="btn btn-danger">
-                    <span class="icon">🗑️</span> Eliminar
+                <button id="btn-bulk-delete" class="btn btn-danger btn-small">
+                    🗑️ Eliminar
                 </button>
-                <button id="btn-deselect-all" class="btn btn-secondary">
-                    <span class="icon">✖️</span> Deseleccionar
+                <button id="btn-deselect-all" class="btn btn-secondary btn-small">
+                    ✖️
                 </button>
             </div>
         </div>
