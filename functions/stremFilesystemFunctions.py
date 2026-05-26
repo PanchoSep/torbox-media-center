@@ -175,6 +175,8 @@ def ensureFolderStructure():
             logging.info(f"Created folder: {folder}")
 
 def runStrm():
+    from functions.trackingFunctions import getData
+    
     # Asegurar que la estructura de carpetas existe
     ensureFolderStructure()
     
@@ -185,6 +187,31 @@ def runStrm():
 
     new_strm_files = set()
     for download in all_downloads:
+        # Obtener hash del download
+        folder_hash = download.get("folder_hash", "")
+        torbox_hash = folder_hash[:8] if folder_hash else None
+        
+        # Verificar si existe en tracking y usar ese path
+        if torbox_hash:
+            existing_tracking = getData(torbox_hash)
+            if existing_tracking and existing_tracking.get('last_seen_path'):
+                # Usar el path del tracking (respeta movimientos manuales)
+                strm_path = existing_tracking['last_seen_path']
+                new_strm_files.add(strm_path)
+                # Extraer file_path relativo desde el strm_path completo
+                # El strm_path es algo como /torbox/music/folder/file.strm
+                # Necesitamos extraer la parte después de /torbox/category/
+                relative_path = os.path.relpath(os.path.dirname(strm_path), MOUNT_PATH)
+                # Remover la categoría del inicio (movies, series, music, others)
+                path_parts = relative_path.split(os.sep)
+                if len(path_parts) > 1:
+                    file_path = os.path.join(*path_parts[1:])
+                else:
+                    file_path = ""
+                generateStremFile(file_path, download.get("download_link"), download.get("metadata_mediatype"), download.get("metadata_filename"), download)
+                continue
+        
+        # Si no está en tracking, generar path desde metadata
         file_path = generateFolderPath(download)
         if file_path is None:
             continue
