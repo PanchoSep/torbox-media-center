@@ -349,7 +349,10 @@ function createFileItem(file, category) {
     item.innerHTML = `
         <div class="file-header">
             <input type="checkbox" class="file-checkbox" data-hash="${file.hash}" ${selectedFiles.has(file.hash) ? 'checked' : ''}>
-            <div class="file-title">${file.title}${yearText}</div>
+            <div class="file-title-container">
+                <div class="file-title">${file.title}${yearText}</div>
+                <div class="file-name">${file.strm_filename}</div>
+            </div>
             <div class="file-badges">${badges.join('')}</div>
         </div>
         <div class="file-info">

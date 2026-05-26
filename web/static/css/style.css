@@ -427,12 +427,26 @@ header h1 {
     flex-shrink: 0;
 }
 
-.file-title {
+.file-title-container {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.file-title {
     font-size: 0.9rem;
     font-weight: 600;
     line-height: 1.3;
     word-break: break-word;
+}
+
+.file-name {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.2;
+    word-break: break-all;
+    opacity: 0.8;
 }
 
 .file-badges {
