@@ -49,7 +49,7 @@ def process_file(item, file, type):
         "file_size": file.get("size"),
         "file_mimetype": file.get("mimetype"),
         "path": file.get("name"),
-        "download_link": f"https://api.torbox.app/v1/api/{type.value}/requestdl?token=***&{IDType[type.value].value}={item.get('id')}&file_id={file.get('id')}&redirect=true",
+        "download_link": f"https://api.torbox.app/v1/api/{type.value}/requestdl?token={TORBOX_API_KEY}&{IDType[type.value].value}={item.get('id')}&file_id={file.get('id')}&redirect=true",
         "extension": os.path.splitext(file.get("short_name"))[-1],
         # Campos de expiración de Torbox
         "expires_at": item.get("expires_at"),
