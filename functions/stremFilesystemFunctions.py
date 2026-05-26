@@ -194,11 +194,24 @@ def runStrm():
             try:
                 os.remove(strm_file)
                 logging.debug(f"Removed stale .strm file: {strm_file}")
-                # Remove empty directories
+                # Remove empty directories, but preserve folders with metadata/subtitles
                 dir = os.path.dirname(strm_file)
-                while dir != MOUNT_PATH and not os.listdir(dir):
-                    os.rmdir(dir)
-                    dir = os.path.dirname(dir)
+                while dir != MOUNT_PATH:
+                    try:
+                        # Check if directory has any files (metadata, subtitles, NFO, etc.)
+                        remaining_files = os.listdir(dir)
+                        if not remaining_files:
+                            # Completely empty, safe to remove
+                            os.rmdir(dir)
+                            logging.debug(f"Removed empty directory: {dir}")
+                            dir = os.path.dirname(dir)
+                        else:
+                            # Has other files (metadata, subtitles), preserve it
+                            logging.debug(f"Preserving directory with metadata: {dir} ({len(remaining_files)} files)")
+                            break
+                    except OSError:
+                        # Directory not empty or other error, stop cleanup
+                        break
             except Exception as e:
                 logging.error(f"Error removing .strm file: {e}")
 
