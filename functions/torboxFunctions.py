@@ -162,7 +162,28 @@ def searchMetadata(query: str, title_data: dict, file_name: str, full_title: str
         "metadata_rootfoldername": title_data.get("item_name", None),
     }
     if not SCAN_METADATA:
-        base_metadata["metadata_rootfoldername"] = item_name
+        # Cuando metadata está deshabilitado, usar formato con hash si ENHANCED_FOLDER_STRUCTURE está habilitado
+        if ENHANCED_FOLDER_STRUCTURE:
+            # Determinar tipo basado en PTN
+            if title_data.get('season') or title_data.get('episode'):
+                base_metadata["metadata_mediatype"] = "series"
+                base_metadata["metadata_rootfoldername"] = format_series_folder(
+                    title=cleanTitle(query),
+                    year=title_data.get('year'),
+                    resolution=title_data.get('resolution'),
+                    hash=hash
+                )
+            else:
+                base_metadata["metadata_mediatype"] = "movie"
+                base_metadata["metadata_rootfoldername"] = format_movie_folder(
+                    title=cleanTitle(query),
+                    year=title_data.get('year'),
+                    resolution=title_data.get('resolution'),
+                    quality=title_data.get('quality'),
+                    hash=hash
+                )
+        else:
+            base_metadata["metadata_rootfoldername"] = item_name
         return base_metadata, False, "Metadata scanning is disabled."
     extension = os.path.splitext(file_name)[-1]
     try:
